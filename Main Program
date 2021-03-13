@@ -1,0 +1,165 @@
+import turtle
+import random
+import math
+
+# Variables
+
+# Velocity
+gravity = 0.98          # The force applied to the y -axis constantly to bring the object to the ground
+bounceForce = 10        # Force applied when two balls collided with one another
+bounciness = 1          # How munch do the balls bounce of the walls and floor
+terminalVelocity = 30   # What is the maximum velocity that the balls can travel at
+
+# Simulation
+accuracy = 16           # How many times a task is done
+simulationSpeed = 1     # How fast the simulation is simulated
+
+# Collision
+collisionDist = 20      # Collision distance for the balls, size 1 balls have a diameter of 20
+
+# Ball
+ballCount = 50          # How many balls on the screen at any given point
+balls = []              # Stores all the balls
+colors = ["blue", "green", "purple", "white"] # Colors of the balls
+
+# Set up the application window
+window = turtle.Screen()
+window.bgcolor("Black")
+window.title("Physics Simulation")
+window.tracer(0, 0)
+
+
+# Draws the border
+def drawBorder():
+    borderPen = turtle.Turtle()
+    borderPen.speed(0)
+    borderPen.color("red")
+    borderPen.penup()
+    borderPen.setpos(-320, 320)
+    borderPen.pensize(5)
+    borderPen.pendown()
+    borderPen.right(90)
+    for side in range(3):
+        borderPen.forward(630)
+        borderPen.left(90)
+    borderPen.hideturtle()
+
+
+# Creates objects
+def instantiate(name, coordX, coordY, shape, color, sizeX, sizeY):
+    name.speed(0)  # Not move speed, but speed of animation
+    name.shape(shape)  # Set paddle shape to a square
+    name.color(color)  # Set paddles color to white
+    name.shapesize(sizeX, sizeY)  # Changes the cubes size
+    name.penup()  # Stops the turtle program from drawing a line
+    name.goto(coordX, coordY)
+
+
+# Create a new ball turtle object until the ball count is met
+for i in range(ballCount):
+    balls.append(turtle.Turtle())
+
+# Give the balls there start pos, color and x-Velocity
+for ball in balls:
+    startX = random.randint(-290, 290)
+    startY = random.randint(200, 300)
+    color = random.choice(colors)
+    instantiate(ball, startX, startY, "circle", color, 1, 1)
+    ball.yDir = 0
+    ball.xDir = random.randint(-3, 3)
+
+
+def collisionCheck():
+    distances = []              # Stores the distances of the balls
+    potentialCollisions = []    # Stores all the potential collisions
+    collisions = []             # Stores all the collisions
+
+    # Calculates distances
+    for i in range(1, len(balls)):
+        xDist = balls[0].xcor() - balls[i].xcor()   # Get the x dist
+        yDist = balls[0].ycor() - balls[i].ycor()   # Get the y dist
+        dMag = math.sqrt((xDist * xDist) + (yDist * yDist)) # X = sqrt(x^2 + y^2)
+        distances.append(dMag)
+
+        # If any balls are in the collision distance of ball 0 then add it to the collision list
+        if dMag < collisionDist:
+            collisions.append([0, i])
+
+    # Calculates potential Collisions
+    for b in range(0, len(distances) - 1):
+        for i in range(b + 1, len(distances)):
+            if math.fabs(distances[b] - distances[i]) <= collisionDist:
+                potentialCollisions.append([b + 1, i + 1])
+
+    # Check each potential collision and if they are a collision add it to the collision list
+    for pc in potentialCollisions:
+        xDist = balls[pc[0]].xcor() - balls[pc[1]].xcor()
+        yDist = balls[pc[0]].ycor() - balls[pc[1]].ycor()
+        dMag = math.sqrt((xDist * xDist) + (yDist * yDist))
+        if dMag <= collisionDist:
+            collisions.append(pc)
+
+    # Calculate forces of collision
+    for col in collisions:
+        xDist = balls[col[0]].xcor() - balls[col[1]].xcor()
+        yDist = balls[col[0]].ycor() - balls[col[1]].ycor()
+        magnitude = math.sqrt((xDist * xDist) + (yDist * yDist))
+        xDist /= magnitude
+        yDist /= magnitude
+        balls[col[0]].xDir = xDist * bounceForce * bounciness
+        balls[col[0]].yDir = yDist * bounceForce * bounciness
+        balls[col[1]].xDir = -xDist * bounceForce * bounciness
+        balls[col[1]].yDir = -yDist * bounceForce * bounciness
+
+    # Old collision checking
+    # for ballToCheck in balls:
+    #
+    #     if ballToCheck != ball:
+    #         xDist = ball.xcor() - ballToCheck.xcor()
+    #
+    #         if math.fabs(xDist) <= collisionDist:
+    #             yDist = ball.ycor() - ballToCheck.ycor()
+    #
+    #             if math.fabs(yDist) <= collisionDist:
+    #                 ball.xDir += xDist * collisionDampener
+    #                 ball.yDir += yDist * collisionDampener
+
+# Draw the border
+drawBorder()
+
+# Run the simulation
+run = True
+while run:
+
+    # Update window to keep smooth movement
+    window.update()
+
+    # Check amount of times
+    for i in range(accuracy):
+
+        # Move every ball and check if it collied with the border
+        for ball in balls:
+            ball.yDir -= gravity / (accuracy * simulationSpeed) # Apply gravity
+            ball.sety(ball.ycor() + ball.yDir / (accuracy * simulationSpeed)) # Move ball up or down
+            ball.setx(ball.xcor() + ball.xDir / (accuracy * simulationSpeed)) # Move ball left or right
+
+            # Stops ball from moving to fast
+            if ball.xDir > terminalVelocity:
+                ball.xDir = terminalVelocity
+            if ball.yDir > terminalVelocity:
+                ball.yDir = terminalVelocity
+
+            # Checks if ball is on the edge of the cup, if it is revers x vel
+            if ball.ycor() <= -300:
+                ball.sety(-299)
+                ball.yDir *= -1 * bounciness
+            if ball.xcor() >= 300:
+                ball.setx(299)
+                ball.xDir *= -1 * bounciness
+            if ball.xcor() <= -300:
+                ball.setx(-299)
+                ball.xDir *= -1 * bounciness
+
+        # Check the collisions
+        collisionCheck()
+
